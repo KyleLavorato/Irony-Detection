@@ -1,0 +1,5 @@
+Preprocessing:
+ X Use the Non-Irony hashtag version (Other hashtags are there and fine)
+ - Instead of removing non-unicode characters (emojis) try translating them to an english word of their meaning
+ X Remove links, they have no meaning in irony. (Could replace with a <URL> token)
+	[Non-shortened links remain as they are a string that could hold meaning]
