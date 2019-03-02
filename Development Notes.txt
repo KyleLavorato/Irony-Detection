@@ -1,5 +1,7 @@
 Preprocessing:
  X Use the Non-Irony hashtag version (Other hashtags are there and fine)
- - Instead of removing non-unicode characters (emojis) try translating them to an english word of their meaning
+ X Instead of removing non-unicode characters (emojis) translate them to an english word of their meaning
+	[Removed duplicate emojis in the same tweet as they are often spammed in a row and could cause over fitting]
  X Remove links, they have no meaning in irony. (Could replace with a <URL> token)
 	[Non-shortened links remain as they are a string that could hold meaning]
+ - Maybe remove useless characters like '|' that are just used as seperation characters
