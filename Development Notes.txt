@@ -1,7 +1,20 @@
 Preprocessing:
  X Use the Non-Irony hashtag version (Other hashtags are there and fine)
- X Instead of removing non-unicode characters (emojis) translate them to an english word of their meaning
+
+ X Translate the emojis to english as before but make them normal words, not :thinking:
 	[Removed duplicate emojis in the same tweet as they are often spammed in a row and could cause over fitting]
+
+ - Translate basic emoticons to text as well
+	[There are :( and :) and :)) at a minimum in the tweet dataset]
+
  X Remove links, they have no meaning in irony. (Could replace with a <URL> token)
 	[Non-shortened links remain as they are a string that could hold meaning]
- - Maybe remove useless characters like '|' that are just used as seperation characters
+
+ - Maybe remove garbage characters like '|' that are just used as seperation characters
+
+ X Attempt to segment compound hashtags into its seperate words; #freelesson -> #free #lesson
+	[This is done but it is not the most accurate]
+	- [Try adding a first step that will try camelcase segmenting if it is possible as it should always be right; #FreeDrinks -> #Free #Drinks]
+	- [If the segmenter is left with a dangling 's' add it to the last word instead of making a new word]
+		(0 | Chill #Rep #ost #Dead  #Domino #s #Haha face with tears of joyskull) EXAMPLE near bottom
+	[I keep the # in the segmented as it is an artifact that could hold irony information the way people use it]

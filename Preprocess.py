@@ -1,4 +1,6 @@
 import emoji
+import subprocess, sys
+import unicodedata
 
 def parse_dataset(fp):
     '''
@@ -17,9 +19,11 @@ def parse_dataset(fp):
                 label = int(line.split("\t")[1])
                 tweet = line.split("\t")[2]
                 y.append(label)
-                tweet_PP1 = removeURLs(tweet)  # Preprocess stage 1
-                tweet_PP2 = removeEmoji(tweet_PP1)
-                corpus.append(tweet_PP2)
+                tweet_PP1 = removeURLs(tweet)  # Preprocess stage 1: Remove any twitter link shortened URLS
+                tweet_PP2 = removeEmoji(tweet_PP1)  # Preprocess stage 2: Take any emojis, decode them to text, and make them seperate words out of :pile_of_poo: form
+                tweet_PP3 = segmentHashtag(tweet_PP2)  # Preprocess stage 3: Take all hashtags and attempt to segment them into seperate words; #freelesson -> #free #lesson (Has about 65% accuracy)
+                # Notes for report: The corncob word dictionary may overfit the data; It matches words that are very uncommon to be used on twitter (eg environment -> environ ment)
+                corpus.append(tweet_PP3)
 
 
     return corpus, y
@@ -54,13 +58,38 @@ def removeEmoji(tweet):
         if char in emoji.UNICODE_EMOJI:
             if char not in usedEmoji:
                 usedEmoji.append(char)
-                emojiText = emoji.demojize(char).replace(":","")
+                emojiText = emoji.demojize(char).replace(":","").replace("_"," ")
                 processedTweet.append(emojiText)
         else:
             processedTweet.append(char)
     newTweet = ''.join(map(str, processedTweet))
     return newTweet
 
+
+def segmentHashtag(tweet):
+    processedTweet = []
+    words = tweet.split(" ")
+    for word in words:
+        # Find the words that have a hashtag
+        hashtag_pos = word.find("#")
+
+        # Add the word connected to the front of the hashtag back to the tweet
+        # Eg. tree#wood
+        if hashtag_pos > 0 and hashtag_pos != -1:
+            processedTweet.append(word[:hashtag_pos])
+        elif hashtag_pos == -1:
+            processedTweet.append(word)  # Add the word that has no hashtag
+        if hashtag_pos != -1:
+            # If there are multiple hashtags without spaces
+            hashtags = word.split("#")
+            hashtags.pop(0)
+            for tag in hashtags:
+                restoredTag = "#"+tag  # Chop off the words before the hashtag and add the # back as it has been stripped
+                segmentedTag = subprocess.check_output("\"D:\Program Files\Python27\python.exe\"" " " "\"SegmentHashtag.py\"" " " + restoredTag.replace("|","").replace(">"," ").replace("&","and"), shell=True)
+                decodedTag = str.strip(segmentedTag.decode('ISO-8859-1'))
+                processedTweet.append(decodedTag)
+    newTweet = ' '.join(map(str, processedTweet))
+    return newTweet
 
 
 def printCorpus(corpus, y):
