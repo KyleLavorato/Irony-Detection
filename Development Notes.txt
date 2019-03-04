@@ -13,7 +13,7 @@ Preprocessing:
  - Maybe remove garbage characters like '|' that are just used as seperation characters
 
  X Attempt to segment compound hashtags into its seperate words; #freelesson -> #free #lesson
-	[This is done but it is not the most accurate]
+	[This is done but it is not the most accurate; It is a full NLP task itself]
 	- [Try adding a first step that will try camelcase segmenting if it is possible as it should always be right; #FreeDrinks -> #Free #Drinks]
 	- [If the segmenter is left with a dangling 's' add it to the last word instead of making a new word]
 		(0 | Chill #Rep #ost #Dead  #Domino #s #Haha face with tears of joyskull) EXAMPLE near bottom
