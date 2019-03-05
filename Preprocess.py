@@ -1,15 +1,57 @@
 import emoji
 import subprocess, sys
 import unicodedata
+from ekphrasis.classes.preprocessor import TextPreProcessor
+from ekphrasis.classes.spellcorrect import SpellCorrector
+from ekphrasis.classes.tokenizer import SocialTokenizer
+from ekphrasis.dicts.emoticons import emoticons
+from spellchecker import SpellChecker  #pyspellchecker
+import csv, re, os # For slang translator
 
-def parse_dataset(fp):
-    '''
-    Loads the dataset .txt file with label-tweet on each line and parses the dataset.
-    :param fp: filepath of dataset
-    :return:
-        corpus: list of tweet strings of each tweet.
-        y: list of labels
-    '''
+
+# Source: https://www.webopedia.com/quick_ref/textmessageabbreviations.asp
+# Manually reviewed to fix duplicates and add swear words; Added some missing slang misspellings
+def buildSlangDict():
+    os.remove("slang-dictionary.txt")
+    with open("slang-source-dictionary.txt", "r") as f:
+        with open("slang-dictionary.txt", "a") as out:
+            line = ""
+            i = 0
+            for data in f:
+                read = str.strip(data)
+                if read == "":
+                    line = line + "="
+                    i += 1
+                else:
+                    line = line + read
+                    i += 1
+                if i == 3:
+                    line = line + '\n'
+                    out.write(line)
+                    line = ""
+                    i = 0
+                    try:
+                        next(f)
+                    except:
+                        pass
+
+def readDictionaries():
+    slangDictionary = []
+    swearDictionary = []
+    with open("slang-dictionary.txt", "r") as f:
+        # Reading file as CSV with delimiter as "=", so that abbreviation are stored in row[0] and phrases in row[1]
+        fileData = csv.reader(f, delimiter="=")
+        for row in fileData:
+            slangDictionary.append(row)
+    with open("swear-dictionary.txt", "r") as f:
+        # Reading file as CSV with delimiter as "=", so that abbreviation are stored in row[0] and phrases in row[1]
+        fileData = csv.reader(f, delimiter="=")
+        for row in fileData:
+            swearDictionary.append(row)
+    return slangDictionary, swearDictionary
+
+
+def parseDataset(fp):
     y = []
     corpus = []
     with open(fp, 'rt', encoding='utf8') as data_in:
@@ -19,77 +61,50 @@ def parse_dataset(fp):
                 label = int(line.split("\t")[1])
                 tweet = line.split("\t")[2]
                 y.append(label)
-                tweet_PP1 = removeURLs(tweet)  # Preprocess stage 1: Remove any twitter link shortened URLS
-                tweet_PP2 = removeEmoji(tweet_PP1)  # Preprocess stage 2: Take any emojis, decode them to text, and make them seperate words out of :pile_of_poo: form
-                tweet_PP3 = segmentHashtag(tweet_PP2)  # Preprocess stage 3: Take all hashtags and attempt to segment them into seperate words; #freelesson -> #free #lesson (Has about 65% accuracy)
-                # Notes for report: The corncob word dictionary may overfit the data; It matches words that are very uncommon to be used on twitter (eg environment -> environ ment)
-                corpus.append(tweet_PP3)
-
+                corpus.append(tweet)
 
     return corpus, y
 
 
-def removeURLs(tweet):
-    words = tweet.split(" ")
-    processedTweet=[]
-    for word in words:
-        # Find all the words that have a url in them
-        # Twitter link shortener is a set 22 or 23 chars depending on http or https
-        if word.find("https://") != -1:
-            if(len(word)>23):
-                newWord = word[23:].replace("|","")
-                processedTweet.append(newWord)
-        elif word.find("http://") != -1:
-            if(len(word)>22):
-                newWord = word[22:].replace("|","")
-                processedTweet.append(newWord)
-        else:
-            processedTweet.append(word)
-    newTweet = ' '.join(map(str, processedTweet))
-    return newTweet
+def preprocessCorpus(corpus):
+    newCorpus = []
+    text_processor = TextPreProcessor(
+        normalize=['url', 'money', 'phone', 'user', 'time', 'date'],
+        annotate={"hashtag", "allcaps", "elongated"},
+        fix_html=True,
+        segmenter="twitter",
+        corrector="twitter",
+        unpack_hashtags=True,  # perform word segmentation on hashtags
+        unpack_contractions=True,  # Unpack contractions (can't -> can not)
+        spell_correct_elong=False,  # spell correction for elongated words
+        # tokenizer=SocialTokenizer(lowercase=True).tokenize,
+    )
+    for tweet in corpus:
+        newTweet = "".join(text_processor.pre_process_doc(tweet))
+        newCorpus.append(newTweet)
+
+    # nn = []
+    # sp = SpellCorrector(corpus="english")
+    # for tweet in newCorpus:
+    #     for word in tweet:
+    #         print(sp.correct(word))
+    return newCorpus
 
 
-def removeEmoji(tweet):
-    processedTweet = []
-    # Ensure each emoji is only in the tweet one time to prevent spam/overfitting
-    # People often put several of the same emoji in a row
-    usedEmoji = []
-    for char in tweet:
-        if char in emoji.UNICODE_EMOJI:
-            if char not in usedEmoji:
-                usedEmoji.append(char)
-                emojiText = emoji.demojize(char).replace(":","").replace("_"," ")
-                processedTweet.append(emojiText)
-        else:
-            processedTweet.append(char)
-    newTweet = ''.join(map(str, processedTweet))
-    return newTweet
-
-
-def segmentHashtag(tweet):
-    processedTweet = []
-    words = tweet.split(" ")
-    for word in words:
-        # Find the words that have a hashtag
-        hashtag_pos = word.find("#")
-
-        # Add the word connected to the front of the hashtag back to the tweet
-        # Eg. tree#wood
-        if hashtag_pos > 0 and hashtag_pos != -1:
-            processedTweet.append(word[:hashtag_pos])
-        elif hashtag_pos == -1:
-            processedTweet.append(word)  # Add the word that has no hashtag
-        if hashtag_pos != -1:
-            # If there are multiple hashtags without spaces
-            hashtags = word.split("#")
-            hashtags.pop(0)
-            for tag in hashtags:
-                restoredTag = "#"+tag  # Chop off the words before the hashtag and add the # back as it has been stripped
-                segmentedTag = subprocess.check_output("\"D:\Program Files\Python27\python.exe\"" " " "\"SegmentHashtag.py\"" " " + restoredTag.replace("|","").replace(">"," ").replace("&","and"), shell=True)
-                decodedTag = str.strip(segmentedTag.decode('ISO-8859-1'))
-                processedTweet.append(decodedTag)
-    newTweet = ' '.join(map(str, processedTweet))
-    return newTweet
+def deslangify(user_string, dict):
+    user_string = user_string.split(" ")
+    j = 0
+    for _str in user_string:
+        # Removing Special Characters.
+        _str = re.sub('[^a-zA-Z0-9-_.]', '', _str)
+        for row in dict:
+            # Check if selected word matches short forms[LHS] in text file.
+            if _str.upper() == row[0]:
+                # If match found replace it with its Abbreviation in text file.
+                user_string[j] = row[1]
+        j = j + 1
+    # Replacing commas with spaces for final output.
+    return ' '.join(user_string)
 
 
 def printCorpus(corpus, y):
@@ -100,9 +115,31 @@ def printCorpus(corpus, y):
 if __name__ == "__main__":
     # Experiment settings
 
+    buildSlangDict()  # Build the slang dictionary from source
+
     DATASET_FP = "Datasets/Train/SemEval2018-T3-train-taskB_emoji.txt"
 
     # Loading dataset and featurised simple Tfidf-BoW model
-    corpus, y = parse_dataset(DATASET_FP)
+    corpus, y = parseDataset(DATASET_FP)
 
-    printCorpus(corpus, y)
+    # processedCorpus = preprocessCorpus(corpus)
+    #
+    # printCorpus(processedCorpus, y)
+
+    slangDictionary, swearDictionary = readDictionaries()
+
+    print(deslangify("CYA B4 u leave 4 camp app atm asm aom", slangDictionary))
+    print(deslangify("fuck shit, asshole", swearDictionary))
+
+
+## Preprocessing Goals in order:
+
+# Convert emoji's to street meaning
+
+# X Replace acronyms and slang (eg r = are)
+    # Needs manual review to look for missed slang
+
+# Preprocessing library
+    # Normalize
+    # Segment hashtags
+    # ...
