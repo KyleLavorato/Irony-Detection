@@ -1,3 +1,12 @@
+UNI=University
+WHOS=Who is
+ITS=It is
+ID=I would
+CANT=Can not
+THATS=That is
+WHERES=Where is
+THERES=There is
+YAY=<Approve>
 HAHA=Laughing
 AHA=Laughing
 AHAHA=Laughing

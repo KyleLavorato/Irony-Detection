@@ -15,7 +15,7 @@
 😑=Sigh
 🎶=Music
 😃=Very Happy
-😇=Innocent Angel
+😇=Angel
 😂=Laughing
 🙌=High Five
 😲=Surprised
@@ -87,7 +87,7 @@
 😎=Cool
 💤=Sleep
 😰=Anxious
-💔=Broken Heart
+💔=No Love
 🎄=Christmas
 😤=Very Angry
 🙀=Surprised

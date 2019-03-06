@@ -1,21 +1,24 @@
-import emoji
-import subprocess, sys
-import unicodedata
-from ekphrasis.classes.preprocessor import TextPreProcessor
+import emoji #emoji
+from ekphrasis.classes.preprocessor import TextPreProcessor #ekphrasis
 from ekphrasis.classes.spellcorrect import SpellCorrector
 from ekphrasis.classes.tokenizer import SocialTokenizer
-from ekphrasis.dicts.emoticons import emoticons
-from spellchecker import SpellChecker  #pyspellchecker
+#from ekphrasis.dicts.emoticons import emoticons
+from ekphrasis.dicts.noslang.slangdict import slangdict
 import csv, re, os # For slang translator
 
+from custom_emoticons import emoticons
+from settings import normalize_emoji
 
-# Source: https://www.webopedia.com/quick_ref/textmessageabbreviations.asp
+
+# Source: https://www.webopedia.com/quick_ref/textmessageabbreviations.asp + Manual revisions
 # Manually reviewed to fix duplicates and add swear words; Added some missing slang misspellings
     # Slang added Eg. da -> the, ur -> you are, y -> why, v -> very, b -> be, etc.
     # True slang meaning replaced for some acronyms; Eg. lol -> Laughing (not laugh out loud; Nobody means that with it), SYS -> System (Not See You Soon)
 # Manually reviewed to remove acronyms that are common words and not intended to be acronyms
     # Eg. so -> Significant Other, we -> Whatever, gas -> Got a Second, sir -> strike it rich, bag -> Busting a Gut
     # The dictionary is very extensive and carries data that is rarely every used
+# Manually added slang missed by ekphrasis such as contractions without '
+    # CANT -> Can not; Ekphrasis leaves as cant
 # Occasional issue not processing non-letter characters he'll -> hell -> <swear>
 
 # The emoji dictionary was manually written to capture the real meaning/emotion of each emoji as
@@ -23,6 +26,7 @@ import csv, re, os # For slang translator
     # Normalized emojis of the same general feeling to aid in generalizing training
     # Eg. All different hearts get normalized to <love> instead of :red_heart:, :green_heart:, :heart_with_arrow:
     # Eg. <Animal>, <Music>, <Sports>
+# Modified ekphrasis emoticon dictionary to use same normalization terms used in our emojis; Added a few missing entries
 def buildSlangDict():
     os.remove("slang-dictionary.txt")
     with open("slang-source-dictionary.txt", "r") as f:
@@ -89,22 +93,29 @@ def preprocessCorpus(corpus):
 
     slangDictionary, swearDictionary, emojiDictionary = readDictionaries()
 
-    # text_processor = TextPreProcessor(
-    #     normalize=['url', 'money', 'phone', 'user', 'time', 'date'],
-    #     annotate={"hashtag", "allcaps", "elongated"},
-    #     fix_html=True,
-    #     segmenter="twitter",
-    #     corrector="twitter",
-    #     unpack_hashtags=True,  # perform word segmentation on hashtags
-    #     unpack_contractions=True,  # Unpack contractions (can't -> can not)
-    #     spell_correct_elong=False,  # spell correction for elongated words
-    #     # tokenizer=SocialTokenizer(lowercase=True).tokenize,
-    # )
+    text_processor = TextPreProcessor(
+        normalize=['url', 'money', 'phone', 'user', 'time', 'date'],
+        annotate={"hashtag", "allcaps", "elongated"},
+        fix_html=True,
+        segmenter="twitter",
+        corrector="twitter",
+        unpack_hashtags=True,  # perform word segmentation on hashtags
+        unpack_contractions=True,  # Unpack contractions (can't -> can not)
+        spell_correct_elong=False,  # spell correction for elongated words
+    )
+
+    text_tokenizer = TextPreProcessor(
+        unpack_contractions=True,  # Unpack contractions (can't -> can not)
+        spell_correct_elong=False,  # spell correction for elongated words
+        tokenizer=SocialTokenizer(lowercase=True).tokenize,
+        dicts =[emoticons, slangdict]
+    )
     for tweet in corpus:
-        # newTweet = "".join(text_processor.pre_process_doc(tweet))
-        newTweet = deslangify(tweet, slangDictionary, 0)
+        newTweet = "".join(text_processor.pre_process_doc(tweet))
+        newTweet = deslangify(newTweet, slangDictionary, 0)
         newTweet = deslangify(newTweet, swearDictionary, 0)
-        newTweet = demoji(newTweet, emojiDictionary, 0, 1)
+        newTweet = demoji(newTweet, emojiDictionary, 0)
+        newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Tokenizer should be last step after we apply our preprocessing
         newCorpus.append(newTweet)
 
     # nn = []
@@ -138,7 +149,7 @@ def deslangify(user_string, dict, showReplacements):
     return ' '.join(user_string)
 
 
-def demoji(tweet, dict, showReplacements, tagging):
+def demoji(tweet, dict, showReplacements):
     # emoji.demojize(char) can be used to get actual name from emojis
     processedTweet = []
     usedEmoji = []
@@ -152,7 +163,7 @@ def demoji(tweet, dict, showReplacements, tagging):
                         if showReplacements:
                             print(tweet, end=" | ")
                             print(row[0],"->",row[1])
-                        if tagging:
+                        if normalize_emoji:
                             usedEmoji.append(char)
                             processedTweet.append("<emoji>" + row[1] + "</emoji>")
                         else:
@@ -181,7 +192,7 @@ if __name__ == "__main__":
 
     buildSlangDict()  # Build the slang dictionary from source
 
-    DATASET_FP = "Datasets/Train/SemEval2018-T3-train-taskB_emoji.txt"
+    DATASET_FP = "../Datasets/Train/SemEval2018-T3-train-taskB_emoji.txt"
 
     # Loading dataset and featurised simple Tfidf-BoW model
     corpus, y = parseDataset(DATASET_FP)
@@ -189,13 +200,16 @@ if __name__ == "__main__":
     processedCorpus = preprocessCorpus(corpus)
 
     #printCorpus(processedCorpus, y)
-    #writeCorpus(processedCorpus, y)
+    writeCorpus(processedCorpus, y)
+
+    os.remove("slangdict.pickle")  # Delete temporary file
 
 
 ## Preprocessing Goals in order:
 
 # X Convert emoji's to true feeling meaning
     # X Custom manual normalized emoji dictionary
+    # Could maybe replace them with a sentiment instead of an emotion <positive> or <negative>
 # Convert text emoticons to feeling meaning
 
 # X Replace acronyms and slang (eg r = are)
