@@ -1,3 +1,63 @@
+FT
+
+Full time
+
+PT
+
+Part time
+
+WIFI
+
+Internet
+
+FOSHO
+
+For sure
+
+JFK
+
+Just fucking kidding
+
+PKG
+
+Package
+
+PKGS
+
+Packages
+
+WASNT
+
+Was not
+
+JEEZ
+
+Wow
+
+GEEZ
+
+Wow
+
+PREZZY
+
+Gift
+
+DEF
+
+Definitely
+
+DEFF
+
+Definitely
+
+AINT
+
+Are not
+
+QB
+
+Quarterback
+
 EW
 
 Gross
@@ -39,6 +99,14 @@ YAY
 <Approve>
 
 HAHA
+
+Laughing
+
+HAHAHA
+
+Laughing
+
+HAHAHAH
 
 Laughing
 

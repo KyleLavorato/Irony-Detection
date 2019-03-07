@@ -3,12 +3,20 @@ from ekphrasis.classes.preprocessor import TextPreProcessor #ekphrasis
 from ekphrasis.classes.spellcorrect import SpellCorrector
 from ekphrasis.classes.tokenizer import SocialTokenizer
 #from ekphrasis.dicts.emoticons import emoticons
-from ekphrasis.dicts.noslang.slangdict import slangdict
 import csv, re, os # For slang translator
 
 from custom_emoticons import emoticons
 from settings import normalize_emoji
+from slang_dict import slangdict
 
+
+
+# Run through 4 slang dictionaries for best results
+    # Our custom one to add missed things from manual review
+    # One of SMS abbreviations
+    # One from the internet
+    # One from ekphrasis
+# They have overlap but all contain replacements that the others miss
 
 # Source: https://www.webopedia.com/quick_ref/textmessageabbreviations.asp + Manual revisions
 # Manually reviewed to fix duplicates and add swear words; Added some missing slang misspellings
@@ -116,13 +124,11 @@ def preprocessCorpus(corpus):
         newTweet = deslangify(newTweet, swearDictionary, 0)
         newTweet = demoji(newTweet, emojiDictionary, 0)
         newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Tokenizer should be last step after we apply our preprocessing
+        newTweet = deslangify(newTweet, swearDictionary, 0)  # Take anoter swear word pass to get any new ones the tokenizer created
+        newTweet = newTweet.replace("|","")
+        newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Retokenize to get rid of any extra spaces left by garbage removal
         newCorpus.append(newTweet)
 
-    # nn = []
-    # sp = SpellCorrector(corpus="english")
-    # for tweet in newCorpus:
-    #     for word in tweet:
-    #         print(sp.correct(word))
     return newCorpus
 
 
@@ -216,6 +222,13 @@ if __name__ == "__main__":
     # X Needs manual review to look for missed slang
 # X Replace swear words with <swear> normalization
     # X Needs manual review to look for missed swears
+
+
+# FUTURE WORK - Design a better spell check
+# Abstain from using a spell checker; Despite the fact that words being spelled correctly are necessary for pretrained
+# networks to understand them, the spell checkers make too many incorrect choices or replace words where no replacement
+# should be make, like in the case of acronyms. At this time automated tools are not confident enough to make the replacement
+# choices.
 
 # Preprocessing library
     # Normalize
