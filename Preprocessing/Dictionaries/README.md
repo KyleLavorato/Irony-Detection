@@ -16,11 +16,11 @@ To translate this slang to English, we use custom and sourced dictionaries that 
 This dictionary was initially sourced from Webopedia in their [Online Chat Abbreviations](https://www.webopedia.com/quick_ref/textmessageabbreviations.asp) Database. It mostly consists of abbreviations that people would use in their text conversations to avoid typing large phrases. We manually reviewed and added many entries to this dictionary as well to resolve issues:
 
 * Obscure terms that also represent real words
- * Eg. gas -> Got a Second | sir -> strike it rich | bag -> Busting a Gut
+ * Eg. gas → Got a Second | sir → strike it rich | bag → Busting a Gut
 * Change the translation of terms from their acronym to their true current slang use
- * LoL -> Laughing (Not "Laugh out Loud")
+ * LoL → Laughing (Not "Laugh out Loud")
 * Addition of slang spellings
- * Eg. da -> the | y -> why | v -> very
+ * Eg. da → the | y → why | v → very
 * Added terms missed by all other sourced dictionaries
 
 ### slang_dict.py
@@ -40,19 +40,19 @@ This dictionary was sourced from the python library (ekphrasis)[https://github.c
 
 A common issue with current emoji translation dictionaries, such as (ekphrasis)[https://github.com/cbaziotis/ekphrasis] or (emoji)[https://pypi.org/project/emoji/] is they translate the literal developer emoji text as defined in (Emojipedia)[https://emojipedia.org/].
 
-* 🙂 -> Slightly Smiling Face
-* 😂 -> Face With Tears of Joy
-* ❤ -> Red Heart
-* 💩 -> Pile of Poo
+* 🙂 → Slightly Smiling Face
+* 😂 → Face With Tears of Joy
+* ❤ → Red Heart
+* 💩 → Pile of Poo
 
 By definition an emoji is "*a small digital image or icon used to express an emotion*". These translations while defining the small picture, do not portray the emotion it captures. In addition, they carry extra text that is not important to the meaning, which will cause a neural network to have more difficulty understanding the meaning from ambiguous or extra terms. 
 
 The translations should be kept simple and demonstrate the **emotion** of the emoticon only. In addition, in the twitter language space, many emojis are commonly used adversely from their depicted emotion, creating a new **slang definition** for its use. Therefore this dictionary considers primarily the slang definitions where present and then the true emotion definition as a second.
 
-* 🙂 -> Happy
-* 😂 -> Laughing
-* ❤ -> Love
-* 💩 -> Sh*t
+* 🙂 → Happy
+* 😂 → Laughing
+* ❤ → Love
+* 💩 → Sh*t
 
 ##### Normalization
 
