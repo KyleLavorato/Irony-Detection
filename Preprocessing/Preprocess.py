@@ -1,13 +1,11 @@
 import emoji #emoji
 from ekphrasis.classes.preprocessor import TextPreProcessor #ekphrasis
-from ekphrasis.classes.spellcorrect import SpellCorrector
 from ekphrasis.classes.tokenizer import SocialTokenizer
-#from ekphrasis.dicts.emoticons import emoticons
 import csv, re, os # For slang translator
 
-from custom_emoticons import emoticons
+from Dictionaries.custom_emoticons import emoticons
+from Dictionaries.slang_dict import slangdict
 from settings import normalize_emoji
-from slang_dict import slangdict
 
 
 
@@ -35,45 +33,22 @@ from slang_dict import slangdict
     # Eg. All different hearts get normalized to <love> instead of :red_heart:, :green_heart:, :heart_with_arrow:
     # Eg. <Animal>, <Music>, <Sports>
 # Modified ekphrasis emoticon dictionary to use same normalization terms used in our emojis; Added a few missing entries
-def buildSlangDict():
-    os.remove("slang-dictionary.txt")
-    with open("slang-source-dictionary.txt", "r") as f:
-        with open("slang-dictionary.txt", "a") as out:
-            line = ""
-            i = 0
-            for data in f:
-                read = str.strip(data)
-                if read == "":
-                    line = line + "="
-                    i += 1
-                else:
-                    line = line + read
-                    i += 1
-                if i == 3:
-                    line = line + '\n'
-                    out.write(line)
-                    line = ""
-                    i = 0
-                    try:
-                        next(f)
-                    except:
-                        pass
 
 def readDictionaries():
     slangDictionary = []
     swearDictionary = []
     emojiDictionary = []
-    with open("slang-dictionary.txt", "r") as f:
+    with open("Dictionaries/slang-dictionary.txt", "r") as f:
         # Reading file as CSV with delimiter as "=", so that abbreviation are stored in row[0] and phrases in row[1]
         fileData = csv.reader(f, delimiter="=")
         for row in fileData:
             slangDictionary.append(row)
-    with open("swear-dictionary.txt", "r") as f:
+    with open("Dictionaries/swear-dictionary.txt", "r") as f:
         # Reading file as CSV with delimiter as "=", so that abbreviation are stored in row[0] and phrases in row[1]
         fileData = csv.reader(f, delimiter="=")
         for row in fileData:
             swearDictionary.append(row)
-    with open("emoji-real-dictionary.txt", "r", encoding="utf-8") as f:
+    with open("Dictionaries/emoji-real-dictionary.txt", "r", encoding="utf-8") as f:
         # Reading file as CSV with delimiter as " = ", so that emojis are stored in row[0] and phrases in row[1]
         fileData = csv.reader(f, delimiter="=")
         for row in fileData:
@@ -189,14 +164,12 @@ def printCorpus(corpus, y):
 def writeCorpus(corpus, y):
     with open ("processed-corups.txt", "w", encoding='utf8') as f:
         for i in range(0, len(corpus)):
-            f.write(str(y[i]) + " | " + corpus[i]+ "\n")
+            f.write(str(y[i]) + "|" + corpus[i]+ "\n")
     print("\nCorpus written to file")
 
 
 if __name__ == "__main__":
     # Experiment settings
-
-    buildSlangDict()  # Build the slang dictionary from source
 
     DATASET_FP = "../Datasets/Train/SemEval2018-T3-train-taskB_emoji.txt"
 
@@ -205,7 +178,7 @@ if __name__ == "__main__":
 
     processedCorpus = preprocessCorpus(corpus)
 
-    #printCorpus(processedCorpus, y)
+    # printCorpus(processedCorpus, y)
     writeCorpus(processedCorpus, y)
 
     os.remove("slangdict.pickle")  # Delete temporary file
