@@ -161,8 +161,8 @@ def printCorpus(corpus, y):
         print(y[i],"|",corpus[i])
 
 
-def writeCorpus(corpus, y):
-    with open ("processed-corups.txt", "w", encoding='utf8') as f:
+def writeCorpus(corpus, y, fp):
+    with open (fp, "w", encoding='utf8') as f:
         for i in range(0, len(corpus)):
             f.write(str(y[i]) + "|" + corpus[i]+ "\n")
     print("\nCorpus written to file")
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     processedCorpus = preprocessCorpus(corpus)
 
     # printCorpus(processedCorpus, y)
-    writeCorpus(processedCorpus, y)
+    writeCorpus(processedCorpus, y, "processed-corups.txt")
 
     os.remove("slangdict.pickle")  # Delete temporary file
 

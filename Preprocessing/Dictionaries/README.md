@@ -26,7 +26,7 @@ This dictionary was initially sourced from Webopedia in their [Online Chat Abbre
 ### slang_dict.py
 ##### Sourced
 
-This dictionary was sourced from the python library (ekphrasis)[https://github.com/cbaziotis/ekphrasis]. It is a large dataset consisting mostly of slang spellings of words and the correction to the correct word. It also includes more recent informal abbreviations then the Webopedia dictionary with much more of a slang focus. Slight changes were made from the base ekphrasis version for usability as it suffers from "over-slanging":
+This dictionary was sourced from the python library [ekphrasis](https://github.com/cbaziotis/ekphrasis). It is a large dataset consisting mostly of slang spellings of words and the correction to the correct word. It also includes more recent informal abbreviations then the Webopedia dictionary with much more of a slang focus. Slight changes were made from the base ekphrasis version for usability as it suffers from "over-slanging":
 
 * Removal of some slang terms that not commonly used as slang
  * Eg. FT → F**k That (Often means "Full Time" in today's twitter speak, not the slang meaning)
@@ -38,7 +38,7 @@ This dictionary was sourced from the python library (ekphrasis)[https://github.c
 ### emoji-real-dictionary.txt
 ##### Custom
 
-A common issue with current emoji translation dictionaries, such as (ekphrasis)[https://github.com/cbaziotis/ekphrasis] or (emoji)[https://pypi.org/project/emoji/] is they translate the literal developer emoji text as defined in (Emojipedia)[https://emojipedia.org/].
+A common issue with current emoji translation dictionaries, such as [ekphrasis](https://github.com/cbaziotis/ekphrasis) or [emoji](https://pypi.org/project/emoji/) is they translate the literal developer emoji text as defined in [Emojipedia](https://emojipedia.org/).
 
 * 🙂 → Slightly Smiling Face
 * 😂 → Face With Tears of Joy
@@ -73,7 +73,7 @@ One emoji concept that this dictionary does not handle in its current form is *e
 The emoji sequence here is used to portray *shoot self in head* to express that the author is very unhappy about their current task. The dictionary translation for this set will translate it to *very happy gun*, which does not successfully capture the correct sentiment.
 
 ###### Disclaimer
-This is not a fully comprehensive dictionary of all emojis like Webopedia due to the sheer effort required in manually defining every emoji. As this is a twitter based dictionary, we have sampled 1000k tweets from the date 03/02/2019 - 03/15-2019
+This is not a fully comprehensive dictionary of all emojis like Webopedia due to the sheer effort required in manually defining every emoji. As this is a twitter based dictionary, we have sampled 655k tweets from the date 03/02/2019 - 03/15-2019
 
 This dictionary is provided as open source and may be used in any non-commercial application. If you use this dictionary in any research or other application, please credit this repository as the source. If you have any improvements or would like to expand the dictionary, please submit a pull request with your revisions.
 
