@@ -1,4 +1,5 @@
 import emoji #emoji
+import random
 from ekphrasis.classes.preprocessor import TextPreProcessor #ekphrasis
 from ekphrasis.classes.tokenizer import SocialTokenizer
 import csv, re, os # For slang translator
@@ -6,6 +7,7 @@ import csv, re, os # For slang translator
 from Dictionaries.custom_emoticons import emoticons
 from Dictionaries.slang_dict import slangdict
 from settings import normalize_emoji
+from settings import TEST_PACKAGE
 
 
 
@@ -60,18 +62,18 @@ def parseDataset(fp):
     y = []
     corpus = []
     with open(fp, 'rt', encoding='utf8') as data_in:
+        next(data_in)
         for line in data_in:
-            if not line.lower().startswith("tweet index"): # discard first line if it contains metadata
-                line = line.rstrip() # remove trailing whitespace
-                label = int(line.split("\t")[1])
-                tweet = line.split("\t")[2]
-                y.append(label)
-                corpus.append(tweet)
+            line = line.rstrip() # remove trailing whitespace
+            label = int(line.split("\t")[1])
+            tweet = line.split("\t")[2]
+            y.append(label)
+            corpus.append(tweet)
 
     return corpus, y
 
 
-def preprocessCorpus(corpus):
+def preprocessCorpus(corpus, TEST_MODE):
     newCorpus = []
 
     slangDictionary, swearDictionary, emojiDictionary = readDictionaries()
@@ -87,24 +89,54 @@ def preprocessCorpus(corpus):
         spell_correct_elong=False,  # spell correction for elongated words
     )
 
+    text_processor_test1 = TextPreProcessor(
+        normalize=['url', 'money', 'phone', 'user', 'time', 'date'],
+        fix_html=True,
+    )
+
+    text_tokenizer_test2 = TextPreProcessor(
+        tokenizer=SocialTokenizer().tokenize,
+        dicts=[slangdict]
+    )
+
     text_tokenizer = TextPreProcessor(
         unpack_contractions=True,  # Unpack contractions (can't -> can not)
         spell_correct_elong=False,  # spell correction for elongated words
         tokenizer=SocialTokenizer(lowercase=True).tokenize,
         dicts =[emoticons, slangdict]
     )
+
     for tweet in corpus:
-        newTweet = "".join(text_processor.pre_process_doc(tweet))
-        newTweet = deslangify(newTweet, slangDictionary, 0)
-        newTweet = deslangify(newTweet, swearDictionary, 0)
-        newTweet = demoji(newTweet, emojiDictionary, 0)
-        newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Tokenizer should be last step after we apply our preprocessing
-        newTweet = deslangify(newTweet, swearDictionary, 0)  # Take anoter swear word pass to get any new ones the tokenizer created
-        newTweet = newTweet.replace("|","")
-        newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Retokenize to get rid of any extra spaces left by garbage removal
+        if TEST_MODE <= 2:
+            newTweet = "".join(text_processor_test1.pre_process_doc(tweet))
+            newTweet = translateStdEmoji(newTweet)
+            if TEST_MODE == 2:
+                newTweet = " ".join(text_tokenizer_test2.pre_process_doc(newTweet))
+        else:
+            newTweet = "".join(text_processor.pre_process_doc(tweet))
+            newTweet = deslangify(newTweet, slangDictionary, 0)
+            newTweet = deslangify(newTweet, swearDictionary, 0)
+            newTweet = demoji(newTweet, emojiDictionary, 0)
+            newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Tokenizer should be last step after we apply our preprocessing
+            newTweet = deslangify(newTweet, swearDictionary, 0)  # Take anoter swear word pass to get any new ones the tokenizer created
+            newTweet = newTweet.replace("|","")
+            newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Retokenize to get rid of any extra spaces left by garbage removal
         newCorpus.append(newTweet)
 
     return newCorpus
+
+
+def translateStdEmoji(tweet):
+    processedTweet = []
+    for char in tweet:
+        if char in emoji.UNICODE_EMOJI:
+            emojiText = emoji.demojize(char)
+            emojiText = emojiText.replace(":", " ")
+            emojiText = emojiText.replace("_", " ")
+            processedTweet.append(emojiText)
+        else:
+            processedTweet.append(char)
+    return ''.join(map(str, processedTweet))
 
 
 def deslangify(user_string, dict, showReplacements):
@@ -169,17 +201,60 @@ def writeCorpus(corpus, y, fp):
 
 
 if __name__ == "__main__":
-    # Experiment settings
 
-    DATASET_FP = "../Datasets/Train/SemEval2018-T3-train-taskB_emoji.txt"
+    DATASET_A_TRAIN = "../Datasets/Train/SemEval2018-T3-train-taskA_emoji.txt"
+    DATASET_A_TEST = "../Datasets/Test/SemEval2018-T3_gold_test_taskA_emoji.txt"
 
-    # Loading dataset and featurised simple Tfidf-BoW model
-    corpus, y = parseDataset(DATASET_FP)
+    DATASET_B_TRAIN = "../Datasets/Train/SemEval2018-T3-train-taskB_emoji.txt"
+    DATASET_B_TEST = "../Datasets/Test/SemEval2018-T3_gold_test_taskB_emoji.txt"
 
-    processedCorpus = preprocessCorpus(corpus)
+    PRETRAIN_RANDOM = "../Pretraining/Data/corpus-random-balanced.txt"
+    PRETRAIN_IRONY = "../Pretraining/Data/corpus-irony-balanced.txt"
 
-    # printCorpus(processedCorpus, y)
-    writeCorpus(processedCorpus, y, "processed-corups.txt")
+    # Loading and processing pre-training dataset
+    pt_random_corpus, pt_random_scores = parseDataset(PRETRAIN_RANDOM)
+    pt_irony_corpus, pt_irony_scores = parseDataset(PRETRAIN_IRONY)
+
+    processed_pt_random_corpus = preprocessCorpus(pt_random_corpus, TEST_PACKAGE)
+    processed_pt_irony_corpus = preprocessCorpus(pt_irony_corpus, TEST_PACKAGE)
+
+    # Create combined pretraining dataset
+    processed_pt_corpus = processed_pt_random_corpus + processed_pt_irony_corpus
+    pt_scores = pt_random_scores + pt_irony_scores
+    # Randomize order of dataset
+    random_pt_corpus = []
+    random_pt_scores = []
+    for i in range(0, len(processed_pt_corpus)):
+        index = random.randint(0,len(processed_pt_corpus)-1)
+        random_pt_corpus.append(processed_pt_corpus.pop(index))
+        random_pt_scores.append(pt_scores.pop(index))
+
+    # Divide into train and test set
+    ninetyIndex = round(len(random_pt_corpus) * 0.9)
+    pt_corpus_train = random_pt_corpus[:ninetyIndex]
+    pt_scores_train = random_pt_scores[:ninetyIndex]
+    pt_corpus_test = random_pt_corpus[ninetyIndex:]
+    pt_scores_test = random_pt_scores[ninetyIndex:]
+
+    trainA_corpus, trainA_scores = parseDataset(DATASET_A_TRAIN)
+    testA_corpus, testA_scores = parseDataset(DATASET_A_TEST)
+
+    trainB_corpus, trainB_scores = parseDataset(DATASET_B_TRAIN)
+    testB_corpus, testB_scores = parseDataset(DATASET_B_TEST)
+
+    trainA_processed = preprocessCorpus(trainA_corpus, 3)
+    testA_processed = preprocessCorpus(testA_corpus, 3)
+
+    trainB_processed = preprocessCorpus(trainB_corpus, TEST_PACKAGE)
+    testB_processed = preprocessCorpus(testB_corpus, TEST_PACKAGE)
+
+    DIR = "../Datasets/TEST-PACKAGE-" + str(TEST_PACKAGE) + "/"
+    writeCorpus(trainA_processed, trainA_scores, DIR + "train-taskA.txt")
+    writeCorpus(testA_processed, testA_scores, DIR + "test-taskA.txt")
+    writeCorpus(trainB_processed, trainB_scores, DIR + "train-taskB.txt")
+    writeCorpus(testB_processed, testB_scores, DIR + "test-taskB.txt")
+    writeCorpus(pt_corpus_train, pt_scores_train, DIR + "pretrain-train.txt")
+    writeCorpus(pt_corpus_test, pt_scores_test, DIR + "pretrain-test.txt")
 
     os.remove("slangdict.pickle")  # Delete temporary file
 
