@@ -94,11 +94,6 @@ def preprocessCorpus(corpus, TEST_MODE):
         fix_html=True,
     )
 
-    text_tokenizer_test2 = TextPreProcessor(
-        tokenizer=SocialTokenizer().tokenize,
-        dicts=[slangdict]
-    )
-
     text_tokenizer = TextPreProcessor(
         unpack_contractions=True,  # Unpack contractions (can't -> can not)
         spell_correct_elong=False,  # spell correction for elongated words
@@ -110,8 +105,10 @@ def preprocessCorpus(corpus, TEST_MODE):
         if TEST_MODE <= 2:
             newTweet = "".join(text_processor_test1.pre_process_doc(tweet))
             newTweet = translateStdEmoji(newTweet)
-            if TEST_MODE == 2:
-                newTweet = " ".join(text_tokenizer_test2.pre_process_doc(newTweet))
+        elif TEST_MODE == 2:
+            newTweet = "".join(text_processor_test1.pre_process_doc(tweet))
+            newTweet = deslangify(newTweet, slangDictionary, 0)
+            newTweet = deslangify(newTweet, emojiDictionary, 0)
         else:
             newTweet = "".join(text_processor.pre_process_doc(tweet))
             newTweet = deslangify(newTweet, slangDictionary, 0)
@@ -121,6 +118,9 @@ def preprocessCorpus(corpus, TEST_MODE):
             newTweet = deslangify(newTweet, swearDictionary, 0)  # Take anoter swear word pass to get any new ones the tokenizer created
             newTweet = newTweet.replace("|","")
             newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Retokenize to get rid of any extra spaces left by garbage removal
+            if TEST_MODE == 77:
+                newTweet = bertProcess(newTweet)
+                newTweet = " ".join(text_tokenizer.pre_process_doc(newTweet))  # Retokenize to get rid of spaces from removed <XXXX> forms
         newCorpus.append(newTweet)
 
     return newCorpus
@@ -176,7 +176,7 @@ def demoji(tweet, dict, showReplacements):
                         if showReplacements:
                             print(tweet, end=" | ")
                             print(row[0],"->",row[1])
-                        if normalize_emoji:
+                        if normalize_emoji and TEST_PACKAGE != 77:
                             usedEmoji.append(char)
                             processedTweet.append("<emoji>" + row[1] + "</emoji>")
                         else:
@@ -185,6 +185,14 @@ def demoji(tweet, dict, showReplacements):
         else:
             processedTweet.append(char)
     newTweet = ''.join(map(str, processedTweet))
+    return newTweet
+
+
+def bertProcess(tweet):
+    newTweet = tweet.replace("<hashtag>", "hashtag")
+    newTweet = newTweet.replace("</hashtag>", "")
+    newTweet = newTweet.replace("<allcaps>", "allcaps")
+    newTweet = newTweet.replace("</allcaps>", "")
     return newTweet
 
 
@@ -201,6 +209,8 @@ def writeCorpus(corpus, y, fp):
 
 
 if __name__ == "__main__":
+
+    print("TEST MODE:", TEST_PACKAGE)
 
     DATASET_A_TRAIN = "../Datasets/Train/SemEval2018-T3-train-taskA_emoji.txt"
     DATASET_A_TEST = "../Datasets/Test/SemEval2018-T3_gold_test_taskA_emoji.txt"
@@ -242,13 +252,18 @@ if __name__ == "__main__":
     trainB_corpus, trainB_scores = parseDataset(DATASET_B_TRAIN)
     testB_corpus, testB_scores = parseDataset(DATASET_B_TEST)
 
-    trainA_processed = preprocessCorpus(trainA_corpus, 3)
-    testA_processed = preprocessCorpus(testA_corpus, 3)
+    trainA_processed = preprocessCorpus(trainA_corpus, TEST_PACKAGE)
+    testA_processed = preprocessCorpus(testA_corpus, TEST_PACKAGE)
 
     trainB_processed = preprocessCorpus(trainB_corpus, TEST_PACKAGE)
     testB_processed = preprocessCorpus(testB_corpus, TEST_PACKAGE)
 
-    DIR = "../Datasets/TEST-PACKAGE-" + str(TEST_PACKAGE) + "/"
+    if TEST_PACKAGE <= 3:
+        DIR_PKG = TEST_PACKAGE
+    else:
+        DIR_PKG = "BERT"
+
+    DIR = "../Datasets/TEST-PACKAGE-" + str(DIR_PKG) + "/"
     writeCorpus(trainA_processed, trainA_scores, DIR + "train-taskA.txt")
     writeCorpus(testA_processed, testA_scores, DIR + "test-taskA.txt")
     writeCorpus(trainB_processed, trainB_scores, DIR + "train-taskB.txt")
